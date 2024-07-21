@@ -6,7 +6,7 @@ CC			=	gcc
 ##		FILE DESCRIPTOR
 ##
 
-INCLUDE = includes
+INCLUDE = includes libft
 
 SRC_PATH = srcs
 
@@ -58,7 +58,7 @@ LFLAGS =	$(foreach path, $(LIBPATH), -L$(path) ) \
 
 
 $(OBJ_PATH)/%.o:	%.c $(IDEP)
-	$(CC) -c $< -o $@ $(CFLAGS) $(IFLAGS) $(LFLAGS)
+	$(CC) -c $< -o $@ $(CFLAGS) $(IFLAGS)
 
 
 all:		$(NAME)

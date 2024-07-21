@@ -5,10 +5,10 @@ char    *dns_lookup(char *canonname, options *opts)
     // check direction of lookup ?
     struct addrinfo hint;
     memset(&hint, 0, sizeof(struct addrinfo));
-    hint.ai_family = AF_INET;    /* Allow IPv4 or IPv6 */
-    hint.ai_socktype = SOCK_RAW; /* Datagram socket */
+    hint.ai_family = AF_INET;   // IPv4 
+    hint.ai_socktype = SOCK_RAW; // configure sent packet header
     hint.ai_flags = AI_CANONNAME;
-    hint.ai_protocol = IPPROTO_ICMP;          /* Any protocol */
+    hint.ai_protocol = IPPROTO_ICMP; // ICMP packet    
     hint.ai_canonname = NULL;
     hint.ai_addr = NULL;
     hint.ai_next = NULL;

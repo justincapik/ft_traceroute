@@ -19,6 +19,8 @@
 #include <sys/time.h>
 #include <limits.h>
 
+#include "libft.h"
+
 # define TRUE 1
 # define FALSE 0
 # define ERROR 2
