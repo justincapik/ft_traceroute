@@ -4,6 +4,7 @@ int main(int argc, char** argv)
 {
     // Check for root access for SOCK_RAW
     if (getuid() != 0)
+    //TODO: do we keep this ? DGRAM socket ?
     {
         fprintf(stderr, "%s: This program requires root privileges!\n", argv[0]);
         return (EXIT_FAILURE);
@@ -15,18 +16,12 @@ int main(int argc, char** argv)
 
     // open socket for icmp paquet
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    int ttl = opts.ttl;
-    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
-    if (opts.flags & OPTS_VERBOSE)
-        printf("ping: sock4.fd: %d (socktype: SOCK_RAW)", sockfd);
 
     char *ip = dns_lookup(opts.host, &opts);
     if (ip == NULL)
         return (EXIT_FAILURE);
-    printf("FT_PING %s (%s) 56(%ld) bytes of data.\n",
-        opts.host, ip, 56 + sizeof(c_icmphdr) + sizeof(struct iphdr));
-    if (strcmp(opts.host, ip) == 0)
-        opts.flags |= OPTS_NO_HOSTNAME;
+    printf("ft_traceroute to %s (%s), %d hops max, %d byte packets\n",
+        opts.host, ip, opts.maxhops, opts.packetlen);
 
     // create socket destination structure
     struct sockaddr_in endpoint;
@@ -37,9 +32,6 @@ int main(int argc, char** argv)
     packet_stats_t stats;
     ping_loop(&endpoint, sockfd, &opts, &stats);
 
-    print_stats(&stats, &opts);
-
-    free_ll(stats.base);
     close(sockfd);
 
     return (EXIT_SUCCESS);
