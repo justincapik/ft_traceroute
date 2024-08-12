@@ -25,16 +25,26 @@
 # define FALSE 0
 # define ERROR 2
 
+# define PACK_UNSENT 0 
+# define PACK_SENT 1
+# define PACK_RECEIVED 2
+# define PACK_EXCEEDED 3
+
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
 
 # define BUFFER_SIZE SHRT_MAX
 
+# define OPTS_NB_PACK (opts->nqueries * opts->maxhops)
+
+# define ID_START
+
 typedef struct options_s {
-    size_t      maxhops;
+    size_t      maxhops; // -m max_ttl 
     int         packetlen;
+    size_t      maxwait; // -w
     uint64_t    flags;
-    size_t      nqueries;
+    size_t      nqueries; // -q number of probes per hop
     char        *host;
     char        *ip;
 } options;
@@ -48,15 +58,18 @@ typedef struct custom_icmphdr_s
     u_int16_t   sequence;
 } c_icmphdr;
 
-typedef struct packet_info_s
+typedef struct packet_info_s packet_info_t;
+struct packet_info_s
 {
-    // id is index in table
-    u_int16_t   seq;
-    time_t      sent_sec;
-    suseconds_t sent_usec;
-    int64_t     difftime; // maybe delete ?
-    int         received; //bool
-} packet_info_t;
+    time_t          sent_sec;
+    suseconds_t     sent_usec;
+    size_t          difftime;
+    char            *host;
+    char            *ip;
+    char            state; // PACK_ values
+};
+// id starts with getuid() and +1 for every packet
+// id and seq can be deduced
 
 int                 parse_argv(int argc, char **argv, options *opts);
 char                *dns_lookup(char *canonname, options *opts);
@@ -65,7 +78,9 @@ int                 hostname_lookup(unsigned int ip, char *revhostname);
 c_icmphdr           *create_icmp_packet(char *buffer);
 unsigned short      checksum(void *b, int len);
 void                update_packet(c_icmphdr *icmp_hdr, int ident);
-sentp_info_t        *check_if_packet_exists(sentp_info_t *base, c_icmphdr *recicmp);
+sentp_info_t        *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
+                        size_t opts_nb_pack);
+packet_stats_t      create_packet_list(options *opt);
 
 void                ping_loop(struct sockaddr_in *endpoint, int sockfd,
                         options *opts, packet_stats_t *stats);

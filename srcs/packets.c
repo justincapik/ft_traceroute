@@ -17,7 +17,7 @@ unsigned short checksum(void *b, int len) {
     return result;
 }
 
-c_icmphdr   *create_icmp_packet(char *buffer)
+c_icmphdr   *create_icmp_packet(char *buffer, u_int16_t id, u_int16_t sequence)
 {
     // create and fill icmp package
     c_icmphdr *icmp_hdr = (c_icmphdr *)buffer;
@@ -27,37 +27,50 @@ c_icmphdr   *create_icmp_packet(char *buffer)
     
     icmp_hdr->type = ICMP_ECHO;
     icmp_hdr->code = 0;
-    icmp_hdr->id = 12345; //filler 
-    icmp_hdr->sequence = 0;
+    icmp_hdr->id = id;
+    icmp_hdr->sequence = sequence;
     icmp_hdr->cksum = 0;
     icmp_hdr->cksum = checksum(icmp_hdr, 56); //TODO:
 
     return icmp_hdr;
 }
 
-// MAYBE keep
-void        update_packet(c_icmphdr *icmp_hdr, int ident)
+packet_stats_t create_packet_list(options *opts)
 {
-    icmp_hdr->sequence = icmp_hdr->sequence + 1;
-    icmp_hdr->id = ident;
-    icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, 56 + sizeof(c_icmphdr)); //TODO:
+    size_t id;
+    size_t seq;
+    packet_info_t *base;
+
+    base = (packet_info_t*)malloc(sizeof(packet_info_t) * OPTS_NB_PACK);
+
+    for (int i = 0; i < OPTS_NB_PACK; ++i)
+    {
+        base[i].sent_sec = 0;
+        base[i].sent_usec = 0;
+        base[i].difftime = 0;
+        base[i].host = NULL;
+        base[i].ip = NULL;
+        base[i].state = PACK_UNSENT;
+    }
+
+    return (base);
 }
 
 // returns sent time
-sentp_info_t     *check_if_packet_exists(sentp_info_t *base, c_icmphdr *recicmp)
+sentp_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
+    size_t opts_nb_pack)
 {
-    sentp_info_t    *tmp = base;
+    size_t id_start;
 
-    while (tmp != NULL)
+    id_start = ID_START;
+
+    if (recicmp->id >= id_start && recicmp < id_start + opts_nb_pack
+        && recicmp->sequence <= opts_nb_pack
+        && recicmp->id - recicmp->sequence - 1 == id_start)
+    // TODO: condition might be fucky with recicmp->sequence
     {
-        if (tmp->received == FALSE
-            && tmp->id == recicmp->id && tmp->seq == recicmp->sequence)
-        {
-            tmp->received = TRUE;
-            return tmp;
-        }
-        tmp = tmp->next;
+        return base[recicmp->sequence - 1];
     }
-    return NULL;
+    else
+        return NULL;
 }

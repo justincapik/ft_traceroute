@@ -7,9 +7,9 @@ void    create_sent_info()
     printf("current time s:%ld m:%ld\n", t.tv_sec, t.tv_usec);
 }
 
-int     rec_packet(int sockfd, sentp_info_t *base, options *opts)
+int     rec_packet(int sockfd, packet_info_t *base, options *opts, struct timeval ct)
 {
-    sentp_info_t *old_package;
+    packet_info_t *pkg;
     char recbuffer[BUFFER_SIZE];
     bzero(recbuffer, BUFFER_SIZE);
 
@@ -18,29 +18,31 @@ int     rec_packet(int sockfd, sentp_info_t *base, options *opts)
     struct iphdr *iph = (struct iphdr *)recbuffer;
 
     if (rres > 0 && recicmp->type == 11 && recicmp->code == 0
-        && (old_package = check_if_packet_exists(base, (c_icmphdr*)((char*)recicmp + 28))) != NULL)
+        && (pkg = check_packet_to_list(base, (c_icmphdr*)((char*)recicmp + 28))) != NULL)
     {
         char ip[BUFFER_SIZE];
         char hostname[256];
         rres = recv(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT);
         inet_ntop(AF_INET, &(iph->saddr), ip, BUFFER_SIZE);
         hostname_lookup(iph->saddr, (char *)hostname);
+
+        difftime = (ct.tv_sec - pkg->sent_sec) * 1000000
+            + ct.tv_usec - pkg->sent_usec;
+
+        pkg->ip = ip;
+        pkg->hostname = hostname;
+        pkg->difftime = difftime;
+        pkg->state = PACK_RECEIVED;
+        
+        // mostly debug
         if (strlen(hostname) != 0)
             printf("From %s (%s) ", hostname, ip);
         else
             printf("From %s (%s) ", ip, ip);
-
-        difftime = (ct.tv_sec - old_package->sent_sec) * 1000000 // TODO:change ct.
-            + ct.tv_usec - old_package->sent_usec;
-        printf("time=%lu", difftime/1000);
-        if (difftime < 10000)
-            printf(".%02lu", (difftime%1000)/10);
-        else if (difftime < 100000)
-            printf(".%01lu", (difftime%1000)/100);
-        printf("ms");
-        return (ERROR);
+        
+        return (TRUE);
     }
-    else if (rres > 0 && (old_package = check_if_packet_exists(base, recicmp)) != NULL)
+    else if (rres > 0 && (pkg = check_packet_to_list(base, recicmp)) != NULL)
     {
         if (0 != checksum(recicmp, rres - sizeof(struct iphdr)))
         {
@@ -54,55 +56,72 @@ int     rec_packet(int sockfd, sentp_info_t *base, options *opts)
     return (FALSE);
 }
 
-// void print_next_gateway
+void    send_packet(packet_info_t *pkg_lst, int count,
+    int sockfd, struct sockaddr_in *endpoint, options *opts)
+{
+    int ttl;
+    int id;
+    int seq;
+    c_icmphdr* icmp_hdr;
+    char buff[BUFFER_SIZE];
+
+    id = ID_START + count;
+    seq = count + 1;
+
+    icmp_hdr = create_icmp_packet(buff, id, seq);
+    
+    ttl = count / opts->nqueries;
+    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+    
+    if (sendto(sockfd, buffer, sizeof(c_icmphdr) + opts->size,
+            0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
+    {
+        fprintf(stderr, "error: could not send message\n");
+        // ¯\_(ツ)_/¯ oh well ? probably TODO:
+        return ;
+    }
+    
+    gettimeofday(&ct, NULL);
+    pkg_lst[count].sent_sec = ct.tv_sec;
+    pkg_lst[count].sent_usec = ct.tv_usec;
+}
+
+size_t  check_time_exceeded(packet_info_t *pkg_lst, )
+
+// void print_progress
 
 void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts)
 {
+    u_int8_t    nb_rec_left;
+    u_int8_t    nb_sent;
+    sentp_info_t *pkg_lst = NULL;
     struct timeval ct;
-    gettimeofday( &ct, NULL );
-    
-    sentp_info_t *sentp_base = NULL;
-    
-    char tmp[BUFFER_SIZE];
-    char *buffer = (char *)tmp;
-    c_icmphdr *icmp_hdr = create_icmp_packet(buffer);
 
-    int count = (opts->count > 0) ? opts->count : 1;
-    int ident = (ct.tv_usec * SHRT_MAX) % (SHRT_MAX + 1);
+    pkg_lst = create_packet_list(opts);
 
-    ct.tv_sec -= 100000; // send first pquage as soon as loop starts
-    signal(SIGINT, sigintHandler);
-    while (count > 0)
+    nb_rec_left = opts->maxhops;
+    nb_sent = 0;
+
+    while (nb_rec_left > 0)
     {
-        // TODO:
-        // int ttl = opts.ttl;
-        // setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+        gettimeofday(&ct, NULL);
         
-        // send packet
-        struct timeval t;
-        gettimeofday( &t, NULL );
-        int64_t difftime;
-        difftime = (t.tv_sec - ct.tv_sec) * 1000000 + t.tv_usec - ct.tv_usec;
-        if (difftime > opts->interval * 1000000
-            && (stats->transmitted < opts->count || opts->count < 0))
+        if (nb_sent < OPTS_NB_PACK)
+        // TODO for bonus: -z here
         {
-            update_packet(icmp_hdr, ident);
-            if (sendto(sockfd, buffer, sizeof(c_icmphdr) + opts->size,
-                    0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
-            {
-                fprintf(stderr, "ping: error: could not send message\n");
-                break ;
-            }
-            gettimeofday( &ct, NULL );
-            add_p_to_list(&sentp_base, icmp_hdr->id, icmp_hdr->sequence);
+            send_packet(pkg_lst, nb_sent);
+            ++nb_sent;
         }
-        sleep(0.01);
+        
         // rec packet
-        int ret = rec_packet(sockfd, sentp_base, opts); 
+        int ret = rec_packet(sockfd, sentp_base, opts);
         if (ret == TRUE)
-        {
-            if (opts->count > 0)
-                count--;
-        }
+            nb_rec_left--;
+        // TODO: check time exceeded for packets
+        ret = check_time_exceeded(base);
+        if (ret > 0)
+            nb_rec_left -= ret;
+        
+        // check list to print new lines or values
     }
 }

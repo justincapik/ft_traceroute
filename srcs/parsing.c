@@ -50,16 +50,16 @@ Arguments:\n\
     opts->maxhops = 30;
     opts->flags = 0;
     opts->nqueries = 3;
+    opts->maxwait = 5; //TODO: change to float ?
 
     // TODO: argv/argc for both of these
     opts->host = argv[argc - 1]; 
     opts->packetlen = 60;
 
+    // run through arguments
     for (int i = 1; i < argc; ++i)
     {
-        if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--verbose") == 0)
-            opts->flags |= OPTS_VERBOSE;
-        else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
         {
             printf("%s", usage);
             return (FALSE);
