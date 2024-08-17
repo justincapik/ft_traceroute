@@ -1,0 +1,4 @@
+objs
+libft/*.o
+libft/libft.a
+ft_traceroute

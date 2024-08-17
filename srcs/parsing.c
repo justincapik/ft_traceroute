@@ -47,7 +47,7 @@ Arguments:\n\
         return FALSE;
     }
 
-    opts->maxhops = 30;
+    opts->maxhops = 20;
     opts->flags = 0;
     opts->nqueries = 3;
     opts->maxwait = 5; //TODO: change to float ?

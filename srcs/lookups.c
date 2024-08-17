@@ -28,6 +28,7 @@ char    *dns_lookup(char *canonname, options *opts)
     free(res->ai_canonname);
     free(res);
 
+    (void)opts;
     return (ip);
 }
 
@@ -41,7 +42,7 @@ int    hostname_lookup(unsigned int ip, char *revhostname)
     bzero(revhostname, 256);
     int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
                     revhostname, 1000, 0, 0, NI_NOFQDN);
-    if (ret != 0)
-        printf("%s\n", gai_strerror(ret));
+    // if (ret != 0)
+    //     printf("%d: %s\n", ip, gai_strerror(ret));
     return ret;
 }

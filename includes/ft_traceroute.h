@@ -28,16 +28,21 @@
 # define PACK_UNSENT 0 
 # define PACK_SENT 1
 # define PACK_RECEIVED 2
-# define PACK_EXCEEDED 3
+# define PACK_REC_PRINTED 3
+# define PACK_EXCEEDED 4
 
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
+
+# define PTYPE_ICMP 0x1
+# define PTYPE_UDP 0x2
+# define PTYPE_TCP 0x3
 
 # define BUFFER_SIZE SHRT_MAX
 
 # define OPTS_NB_PACK (opts->nqueries * opts->maxhops)
 
-# define ID_START
+# define START_ID getuid()
 
 typedef struct options_s {
     size_t      maxhops; // -m max_ttl 
@@ -45,6 +50,7 @@ typedef struct options_s {
     size_t      maxwait; // -w
     uint64_t    flags;
     size_t      nqueries; // -q number of probes per hop
+    size_t      size;
     char        *host;
     char        *ip;
 } options;
@@ -64,7 +70,8 @@ struct packet_info_s
     time_t          sent_sec;
     suseconds_t     sent_usec;
     size_t          difftime;
-    char            *host;
+    char            ttl;
+    char            *hostname;
     char            *ip;
     char            state; // PACK_ values
 };
@@ -75,14 +82,14 @@ int                 parse_argv(int argc, char **argv, options *opts);
 char                *dns_lookup(char *canonname, options *opts);
 int                 hostname_lookup(unsigned int ip, char *revhostname);
 
-c_icmphdr           *create_icmp_packet(char *buffer);
+c_icmphdr           *create_icmp_packet(char *buffer, u_int16_t id,
+                        u_int16_t sequence);
 unsigned short      checksum(void *b, int len);
 void                update_packet(c_icmphdr *icmp_hdr, int ident);
-sentp_info_t        *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
+packet_info_t       *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
                         size_t opts_nb_pack);
-packet_stats_t      create_packet_list(options *opt);
+packet_info_t       *create_packet_list(options *opt);
 
-void                ping_loop(struct sockaddr_in *endpoint, int sockfd,
-                        options *opts, packet_stats_t *stats);
+void                ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts);
 
 #endif

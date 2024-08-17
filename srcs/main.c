@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     char *ip = dns_lookup(opts.host, &opts);
     if (ip == NULL)
         return (EXIT_FAILURE);
-    printf("ft_traceroute to %s (%s), %d hops max, %d byte packets\n",
+    printf("ft_traceroute to %s (%s), %ld hops max, %d byte packets\n",
         opts.host, ip, opts.maxhops, opts.packetlen);
 
     // create socket destination structure
@@ -29,8 +29,7 @@ int main(int argc, char** argv)
     endpoint.sin_family = AF_INET;
     endpoint.sin_addr.s_addr = inet_addr(ip);
     
-    packet_stats_t stats;
-    ping_loop(&endpoint, sockfd, &opts, &stats);
+    ping_loop(&endpoint, sockfd, &opts);
 
     close(sockfd);
 

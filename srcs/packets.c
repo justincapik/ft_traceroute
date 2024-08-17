@@ -30,25 +30,23 @@ c_icmphdr   *create_icmp_packet(char *buffer, u_int16_t id, u_int16_t sequence)
     icmp_hdr->id = id;
     icmp_hdr->sequence = sequence;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, 56); //TODO:
+    icmp_hdr->cksum = checksum(icmp_hdr, sizeof(c_icmphdr) + 1);
 
     return icmp_hdr;
 }
 
-packet_stats_t create_packet_list(options *opts)
+packet_info_t *create_packet_list(options *opts)
 {
-    size_t id;
-    size_t seq;
     packet_info_t *base;
 
     base = (packet_info_t*)malloc(sizeof(packet_info_t) * OPTS_NB_PACK);
 
-    for (int i = 0; i < OPTS_NB_PACK; ++i)
+    for (size_t i = 0; i < OPTS_NB_PACK; ++i)
     {
         base[i].sent_sec = 0;
         base[i].sent_usec = 0;
         base[i].difftime = 0;
-        base[i].host = NULL;
+        base[i].hostname = NULL;
         base[i].ip = NULL;
         base[i].state = PACK_UNSENT;
     }
@@ -57,19 +55,18 @@ packet_stats_t create_packet_list(options *opts)
 }
 
 // returns sent time
-sentp_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
+packet_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
     size_t opts_nb_pack)
 {
-    size_t id_start;
+    u_int16_t id_start;
 
-    id_start = ID_START;
+    id_start = (u_int16_t)START_ID;
 
-    if (recicmp->id >= id_start && recicmp < id_start + opts_nb_pack
-        && recicmp->sequence <= opts_nb_pack
-        && recicmp->id - recicmp->sequence - 1 == id_start)
+    if (recicmp->id >= id_start && recicmp->id < id_start + opts_nb_pack
+        && recicmp->sequence <= opts_nb_pack + 1)
     // TODO: condition might be fucky with recicmp->sequence
     {
-        return base[recicmp->sequence - 1];
+        return &(base[recicmp->sequence - 1]);
     }
     else
         return NULL;
