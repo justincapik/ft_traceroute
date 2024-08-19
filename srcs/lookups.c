@@ -1,10 +1,10 @@
 #include "ft_traceroute.h"
 
-char    *dns_lookup(char *canonname, options *opts)
+struct addrinfo   *dns_lookup(char *canonname, options *opts)
 {
     // check direction of lookup ?
     struct addrinfo hint;
-    memset(&hint, 0, sizeof(struct addrinfo));
+    ft_memset(&hint, 0, sizeof(struct addrinfo));
     hint.ai_family = AF_INET;   // IPv4 
     hint.ai_socktype = SOCK_RAW; // configure sent packet header
     hint.ai_flags = AI_CANONNAME;
@@ -20,16 +20,9 @@ char    *dns_lookup(char *canonname, options *opts)
         fprintf(stderr, "%s: %s\n", canonname, gai_strerror(s));
         return NULL;
     }
-
-    struct sockaddr_in *addr;
-    addr = (struct sockaddr_in *)res->ai_addr; 
-    char *ip = inet_ntoa((struct in_addr)addr->sin_addr);
-
-    free(res->ai_canonname);
-    free(res);
-
     (void)opts;
-    return (ip);
+    
+    return (res);
 }
 
 // get hostname and dns from ip
@@ -39,7 +32,7 @@ int    hostname_lookup(unsigned int ip, char *revhostname)
     endpoint.sin_family = AF_INET;
     endpoint.sin_addr.s_addr = ip;
 
-    bzero(revhostname, 256);
+    ft_bzero(revhostname, 256);
     int ret = getnameinfo((struct sockaddr*)&endpoint, (socklen_t)sizeof(struct sockaddr),
                     revhostname, 1000, 0, 0, NI_NOFQDN);
     // if (ret != 0)

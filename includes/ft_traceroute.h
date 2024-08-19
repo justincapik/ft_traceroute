@@ -28,8 +28,9 @@
 # define PACK_UNSENT 0 
 # define PACK_SENT 1
 # define PACK_RECEIVED 2
-# define PACK_REC_PRINTED 3
-# define PACK_EXCEEDED 4
+# define PACK_REC_END 3
+# define PACK_REC_PRINTED 4
+# define PACK_EXCEEDED 5
 
 # define OPTS_VERBOSE 0x1
 # define OPTS_NO_HOSTNAME 0x2
@@ -79,7 +80,7 @@ struct packet_info_s
 // id and seq can be deduced
 
 int                 parse_argv(int argc, char **argv, options *opts);
-char                *dns_lookup(char *canonname, options *opts);
+struct addrinfo     *dns_lookup(char *canonname, options *opts);
 int                 hostname_lookup(unsigned int ip, char *revhostname);
 
 c_icmphdr           *create_icmp_packet(char *buffer, u_int16_t id,
@@ -89,6 +90,7 @@ void                update_packet(c_icmphdr *icmp_hdr, int ident);
 packet_info_t       *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
                         size_t opts_nb_pack);
 packet_info_t       *create_packet_list(options *opt);
+void                free_packet_list(packet_info_t *lst, size_t size);
 
 void                ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts);
 

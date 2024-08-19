@@ -21,7 +21,7 @@ c_icmphdr   *create_icmp_packet(char *buffer, u_int16_t id, u_int16_t sequence)
 {
     // create and fill icmp package
     c_icmphdr *icmp_hdr = (c_icmphdr *)buffer;
-    bzero(buffer, BUFFER_SIZE);
+    ft_bzero(buffer, BUFFER_SIZE);
     for(int i = sizeof(icmp_hdr); i < BUFFER_SIZE; ++i)
         buffer[i] = (char)(i - sizeof(icmp_hdr));
     
@@ -52,6 +52,18 @@ packet_info_t *create_packet_list(options *opts)
     }
 
     return (base);
+}
+
+void            free_packet_list(packet_info_t *lst, size_t size)
+{
+    for (size_t i = 0; i < size; ++i)
+    {
+        if (lst[i].hostname != NULL)
+            free(lst[i].hostname);
+        if (lst[i].ip != NULL)
+            free(lst[i].ip);
+    }
+    free(lst);
 }
 
 // returns sent time

@@ -6,7 +6,7 @@ int     isnumber(char *str)
     size_t len;
     int pointcheck = FALSE;
 
-    len = strlen(str);
+    len = ft_strlen(str);
     i = 0;
 
     if (len == 0)
@@ -47,10 +47,10 @@ Arguments:\n\
         return FALSE;
     }
 
-    opts->maxhops = 20;
+    opts->maxhops = 30;
     opts->flags = 0;
     opts->nqueries = 3;
-    opts->maxwait = 5; //TODO: change to float ?
+    opts->maxwait = 100; //TODO: change to float ?
 
     // TODO: argv/argc for both of these
     opts->host = argv[argc - 1]; 
@@ -59,7 +59,7 @@ Arguments:\n\
     // run through arguments
     for (int i = 1; i < argc; ++i)
     {
-        if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0)
+        if (ft_strcmp(argv[i], "-h") == 0 || ft_strcmp(argv[i], "--help") == 0)
         {
             printf("%s", usage);
             return (FALSE);

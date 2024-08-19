@@ -17,21 +17,26 @@ int main(int argc, char** argv)
     // open socket for icmp paquet
     int sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
 
-    char *ip = dns_lookup(opts.host, &opts);
-    if (ip == NULL)
+    struct addrinfo *info = dns_lookup(opts.host, &opts);
+    if (info == NULL)
         return (EXIT_FAILURE);
+    struct sockaddr_in *addr_in;
+    addr_in = (struct sockaddr_in *)info->ai_addr; 
+    char *ip = inet_ntoa((struct in_addr)addr_in->sin_addr);
+    
     printf("ft_traceroute to %s (%s), %ld hops max, %d byte packets\n",
         opts.host, ip, opts.maxhops, opts.packetlen);
 
     // create socket destination structure
     struct sockaddr_in endpoint;
-    memset(&endpoint, 0, sizeof(endpoint));
+    ft_memset(&endpoint, 0, sizeof(endpoint));
     endpoint.sin_family = AF_INET;
-    endpoint.sin_addr.s_addr = inet_addr(ip);
+    endpoint.sin_addr = addr_in->sin_addr;
     
     ping_loop(&endpoint, sockfd, &opts);
 
     close(sockfd);
+    freeaddrinfo(info);
 
     return (EXIT_SUCCESS);
 }
