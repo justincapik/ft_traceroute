@@ -1,0 +1,21 @@
+XXX recv to recvfrom
+XXX change inet_addr (to inet_pton?)
+gettimeval weird stuff
+options (no time limits)
+    - XXX -f => first_ttl
+    - XXX -m => maxhops
+    - XXX -q => nqueries
+options (time limits)
+    - bad_atol for -w and -z ?
+    - -w => max wait time
+    - -z => send wait, between each paquet
+    - XXX -N => throddles number of probes sent at a time
+UDP packet
+    - -I => icmp packet
+    - -U => udp packet
+    - -p port => set port to user
+    - -s src_addr => set source address for outgoing packets
+leaks (ideas:)
+    - XXX ai_canonname
+    - XXX strdup(ip) and strdup(hostname)
+    - XXX packets

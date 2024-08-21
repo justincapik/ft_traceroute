@@ -30,6 +30,12 @@ void    print_lst(packet_info_t *lst, options *opts)
     printf("\n");
 }
 
+size_t  difftime_calc(struct timeval older, struct timeval recent)
+{
+    return (recent.tv_sec - older.tv_sec) * 1000000
+        + recent.tv_usec - older.tv_usec;
+}
+
 void    update_pkg_lst(packet_info_t *pkg, struct iphdr *iph, struct timeval ct)
 {
     char ip[BUFFER_SIZE];
@@ -99,7 +105,7 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
     id = START_ID + nb_sent;
     seq = nb_sent + 1;
     
-    ttl = nb_sent / opts->nqueries + 1;
+    ttl = nb_sent / opts->nqueries + 1 + opts->first_ttl;
     setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
     create_icmp_packet(buff, id, seq);
@@ -142,23 +148,28 @@ size_t  check_time_exceeded(packet_info_t *pkg_lst,
 
 int     print_progress(packet_info_t *pkg_lst, options *opts, int c_pkg)
 {
-    static size_t   endcount = 0;
+    static char     endcount = 0;
     char            *hostname;
     char            *ip;
-    size_t         difftime;
+    size_t          difftime;
+    size_t          server_nbr;
 
+    server_nbr = (c_pkg + opts->nqueries) / opts->nqueries + opts->first_ttl;
     if (pkg_lst[c_pkg].state == PACK_RECEIVED
         || pkg_lst[c_pkg].state == PACK_REC_END)
     {
         if (c_pkg % opts->nqueries == 0
             || ft_strcmp(pkg_lst[c_pkg].ip,
-                pkg_lst[c_pkg / opts->nqueries * opts->nqueries].ip) != 0)
+                pkg_lst[server_nbr * opts->nqueries - opts->nqueries].ip) != 0)
         {
+            if (c_pkg % opts->nqueries == 0)
+            {
+                if (server_nbr < 10)
+                    printf(" ");
+                printf("%ld", server_nbr);
+            }
             hostname = pkg_lst[c_pkg].hostname;
             ip = pkg_lst[c_pkg].ip;
-            if ((c_pkg + opts->nqueries) / opts->nqueries < 10)
-                printf(" ");
-            printf("%ld", (c_pkg + opts->nqueries) / opts->nqueries);
             if (ft_strlen(hostname) > 0)
                 printf(" %s (%s)", hostname, ip);
             else
@@ -176,18 +187,15 @@ int     print_progress(packet_info_t *pkg_lst, options *opts, int c_pkg)
             return (-1);
         c_pkg++;
         if (c_pkg % opts->nqueries == 0)
-        {
             printf("\n");
-            // print_lst(pkg_lst, opts);
-        }
     }
     else if (pkg_lst[c_pkg].state == PACK_EXCEEDED)
     {
         if (c_pkg % opts->nqueries == 0)
         {
-            if ((c_pkg + opts->nqueries) / opts->nqueries < 10)
+            if (server_nbr < 10)
                 printf(" ");
-            printf("%ld", (c_pkg + opts->nqueries) / opts->nqueries);
+            printf("%ld", server_nbr);
         }
         printf(" *");
         c_pkg++;
@@ -204,22 +212,28 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts)
     int         pkg_print_nb = 0;
     packet_info_t *pkg_lst = NULL;
     struct timeval ct;
+    struct timeval last_pkg;
 
     pkg_lst = create_packet_list(opts);
 
     nb_rec_left = OPTS_NB_PACK;
     nb_sent = 0;
+    
+    gettimeofday(&last_pkg, NULL);
 
     while (nb_rec_left > 0)
     {
         gettimeofday(&ct, NULL);
-        gettimeofday(&ct, NULL);
         
-        if (nb_sent < OPTS_NB_PACK)
-        // todo for bonus: -z here
+        if (nb_sent == 0 || (nb_sent < OPTS_NB_PACK
+            && difftime_calc(last_pkg, ct) > opts->max_send_wait
+            && (nb_sent % opts->simul_send_nb != 0
+                || (nb_sent % opts->simul_send_nb == 0
+                    && difftime_calc(last_pkg, ct) > opts->max_simul_send))))
         {
             send_packet(pkg_lst, nb_sent, sockfd, endpoint, opts);
             ++nb_sent;
+            gettimeofday(&last_pkg, NULL);
         }
         
         // rec packet

@@ -41,17 +41,24 @@
 
 # define BUFFER_SIZE SHRT_MAX
 
-# define OPTS_NB_PACK (opts->nqueries * opts->maxhops)
+# define OPTS_NB_PACK (opts->nqueries * opts->maxhops - opts->first_ttl)
 
 # define START_ID getuid()
 
-typedef struct options_s {
+typedef struct options_s 
+{
+    size_t      simul_send_nb;
+    size_t      max_simul_send; // -w
+    size_t      pkg_send_diff;
+    size_t      grp_send_diff;
+    size_t      first_ttl;
     size_t      maxhops; // -m max_ttl 
     int         packetlen;
     size_t      maxwait; // -w
+    size_t      max_send_wait; // -w
     uint64_t    flags;
-    size_t      nqueries; // -q number of probes per hop
     size_t      size;
+    char        nqueries; // -q number of probes per hop
     char        *host;
     char        *ip;
 } options;
