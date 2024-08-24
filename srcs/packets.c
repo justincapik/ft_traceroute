@@ -17,7 +17,7 @@ unsigned short checksum(void *b, int len) {
     return result;
 }
 
-c_icmphdr   *create_icmp_packet(char *buffer, u_int16_t id, u_int16_t sequence)
+c_icmphdr   *create_icmp_packet(char *buffer, int size, u_int16_t id, u_int16_t sequence)
 {
     // create and fill icmp package
     c_icmphdr *icmp_hdr = (c_icmphdr *)buffer;
@@ -30,7 +30,7 @@ c_icmphdr   *create_icmp_packet(char *buffer, u_int16_t id, u_int16_t sequence)
     icmp_hdr->id = id;
     icmp_hdr->sequence = sequence;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, sizeof(c_icmphdr) + 1);
+    icmp_hdr->cksum = checksum(icmp_hdr, size - sizeof(c_icmphdr));
 
     return icmp_hdr;
 }
@@ -82,4 +82,18 @@ packet_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
     }
     else
         return NULL;
+}
+
+u_int16_t       get_server_port(int sockfd, struct sockaddr_in *endpoint,
+    u_int16_t sug_port)
+{
+    socklen_t size = sizeof(endpoint);
+
+    (void)sug_port;
+    // sug_port = 0;
+    // endpoint->sin_port = htons(sug_port); 
+    int out1 = bind(sockfd, (struct sockaddr*)endpoint, sizeof(endpoint));
+    int out2 = getsockname(sockfd, (struct sockaddr *)endpoint, &size);
+
+    return endpoint->sin_port;
 }

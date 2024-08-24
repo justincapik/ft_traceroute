@@ -43,7 +43,7 @@
 
 # define OPTS_NB_PACK (opts->nqueries * opts->maxhops - opts->first_ttl)
 
-# define START_ID getuid()
+# define START_ID getpid()
 
 typedef struct options_s 
 {
@@ -56,8 +56,9 @@ typedef struct options_s
     int         packetlen;
     size_t      maxwait; // -w
     size_t      max_send_wait; // -w
-    uint64_t    flags;
     size_t      size;
+    u_int16_t   port;
+    u_int8_t    pack_type;
     char        nqueries; // -q number of probes per hop
     char        *host;
     char        *ip;
@@ -90,8 +91,9 @@ int                 parse_argv(int argc, char **argv, options *opts);
 struct addrinfo     *dns_lookup(char *canonname, options *opts);
 int                 hostname_lookup(unsigned int ip, char *revhostname);
 
-c_icmphdr           *create_icmp_packet(char *buffer, u_int16_t id,
+c_icmphdr           *create_icmp_packet(char *buffer, int size, u_int16_t id,
                         u_int16_t sequence);
+u_int16_t           get_server_port(int sockfd, struct sockaddr_in *endoint, u_int16_t sug);
 unsigned short      checksum(void *b, int len);
 void                update_packet(c_icmphdr *icmp_hdr, int ident);
 packet_info_t       *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,

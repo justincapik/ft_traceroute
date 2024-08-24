@@ -105,25 +105,38 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
     id = START_ID + nb_sent;
     seq = nb_sent + 1;
     
-    ttl = nb_sent / opts->nqueries + 1 + opts->first_ttl;
-    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
-
-    create_icmp_packet(buff, id, seq);
-    
     gettimeofday(&ct, NULL);
     pkg_lst[nb_sent].sent_sec = ct.tv_sec;
     pkg_lst[nb_sent].sent_usec = ct.tv_usec;
     pkg_lst[nb_sent].state = PACK_SENT;
+    ttl = nb_sent / opts->nqueries + 1 + opts->first_ttl;
     pkg_lst[nb_sent].ttl = ttl;
     
-    if (sendto(sockfd, buff, sizeof(c_icmphdr),
-            0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
+    setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+
+    if (opts->pack_type == PTYPE_ICMP)
     {
-        fprintf(stderr, "error: could not send message\n");
-        // ¯\_(ツ)_/¯ oh well ? probably TODO:
-        return ;
+        create_icmp_packet(buff, opts->packetlen, id, seq);
+
+        if (sendto(sockfd, buff, opts->packetlen - sizeof(c_icmphdr),
+                0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
+        {
+            fprintf(stderr, "error: could not send message\n");
+            // ¯\_(ツ)_/¯ oh well ? probably TODO:
+            return ;
+        }
     }
-    
+    else if (opts->pack_type == PTYPE_UDP)
+    {
+        if (sendto(sockfd, buff, opts->packetlen - sizeof(c_icmphdr), 0,
+            (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
+        {
+            fprintf(stderr, "error: could not send message\n");
+            // ¯\_(ツ)_/¯ oh well ? probably TODO:
+            return ;
+        }
+
+    }    
 }
 
 size_t  check_time_exceeded(packet_info_t *pkg_lst,

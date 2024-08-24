@@ -7,7 +7,7 @@ struct addrinfo   *dns_lookup(char *canonname, options *opts)
     ft_memset(&hint, 0, sizeof(struct addrinfo));
     hint.ai_family = AF_INET;   // IPv4 
     hint.ai_socktype = SOCK_RAW; // configure sent packet header
-    hint.ai_flags = AI_CANONNAME;
+    hint.ai_flags = AI_CANONNAME | AI_V4MAPPED | AI_ADDRCONFIG;
     hint.ai_protocol = IPPROTO_ICMP; // ICMP packet    
     hint.ai_canonname = NULL;
     hint.ai_addr = NULL;
