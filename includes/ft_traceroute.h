@@ -101,6 +101,7 @@ packet_info_t       *check_packet_to_list(packet_info_t *base, c_icmphdr *recicm
 packet_info_t       *create_packet_list(options *opt);
 void                free_packet_list(packet_info_t *lst, size_t size);
 
-void                ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts);
+void                ping_loop(struct sockaddr_in *endpoint, options *opts,
+                        int rec_sock_fd, int send_sockfd);
 
 #endif

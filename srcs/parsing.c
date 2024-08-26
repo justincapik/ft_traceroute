@@ -144,5 +144,8 @@ Arguments:\n\
     }
     --opts->first_ttl; // for convenience later in code
 
+    if (opts->packetlen < 8)
+        opts->packetlen = 8;
+
     return TRUE;
 }

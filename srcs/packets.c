@@ -30,7 +30,7 @@ c_icmphdr   *create_icmp_packet(char *buffer, int size, u_int16_t id, u_int16_t 
     icmp_hdr->id = id;
     icmp_hdr->sequence = sequence;
     icmp_hdr->cksum = 0;
-    icmp_hdr->cksum = checksum(icmp_hdr, size - sizeof(c_icmphdr));
+    icmp_hdr->cksum = checksum(icmp_hdr, size);
 
     return icmp_hdr;
 }
@@ -74,9 +74,12 @@ packet_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
 
     id_start = (u_int16_t)START_ID;
 
+    // printf("rec: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
+
     if (recicmp->id >= id_start && recicmp->id < id_start + opts_nb_pack
         && recicmp->sequence <= opts_nb_pack + 1)
     // TODO: condition might be fucky with recicmp->sequence
+    // confirmed the condition is fucky, or at least printfs are
     {
         return &(base[recicmp->sequence - 1]);
     }
@@ -87,13 +90,9 @@ packet_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
 u_int16_t       get_server_port(int sockfd, struct sockaddr_in *endpoint,
     u_int16_t sug_port)
 {
-    socklen_t size = sizeof(endpoint);
-
     (void)sug_port;
-    // sug_port = 0;
-    // endpoint->sin_port = htons(sug_port); 
-    int out1 = bind(sockfd, (struct sockaddr*)endpoint, sizeof(endpoint));
-    int out2 = getsockname(sockfd, (struct sockaddr *)endpoint, &size);
+    endpoint->sin_port = htons(33434); 
+    bind(sockfd, (struct sockaddr*)endpoint, sizeof(endpoint));
 
     return endpoint->sin_port;
 }

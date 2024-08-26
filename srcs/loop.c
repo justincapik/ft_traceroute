@@ -51,26 +51,38 @@ void    update_pkg_lst(packet_info_t *pkg, struct iphdr *iph, struct timeval ct)
 }
 
 int     rec_packet(int sockfd, packet_info_t *base,
-    options *opts, struct timeval ct, struct sockaddr_in *endpoint)
+    options *opts, struct timeval ct)
 {
     packet_info_t *pkg;
     char recbuffer[BUFFER_SIZE];
+    char databuffer[BUFFER_SIZE];
     ft_bzero(recbuffer, BUFFER_SIZE);
-    // size_t len = sizeof(*endpoint);
+    ft_bzero(databuffer, BUFFER_SIZE);
+    // c_icmphdr *recicmp = (c_icmphdr*)&databuffer[0] + sizeof(struct iphdr);
+    // struct iphdr *iph = (struct iphdr *)&databuffer[0];
+
+    // printf("data=%p, icmp=%p, iph=%p\n", &databuffer[0], recicmp, iph);
+
+    // int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE,
+    //     MSG_DONTWAIT, NULL, NULL);
 
     int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT,
         NULL, NULL);
-        // (struct sockaddr*)endpoint, (socklen_t*)&len); // :[
-    (void)endpoint;
     c_icmphdr *recicmp = (c_icmphdr *)(recbuffer + sizeof(struct iphdr));
     struct iphdr *iph = (struct iphdr *)recbuffer;
+    // memmove((void*)recicmp, recbuffer + sizeof(struct iphdr), sizeof(c_icmphdr));
+    // memmove((void*)iph, recbuffer, sizeof(iph));
+
+    if (!(recicmp->id == 0 && recicmp->sequence == 0)) 
+        printf("rec: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
 
     if (rres > 0 && recicmp->type == 11 && recicmp->code == 0
         && (pkg = check_packet_to_list(base,
             (c_icmphdr*)((char*)recicmp + 28), OPTS_NB_PACK)) != NULL)
     {
-        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT,
-            NULL, NULL);
+        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT, NULL, NULL);
+
+        printf("rec VAL: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
         update_pkg_lst(pkg, iph, ct);
         
         return (TRUE);
@@ -83,9 +95,10 @@ int     rec_packet(int sockfd, packet_info_t *base,
             printf("ping: error: Invalid checksum\n");
             return (FALSE);
         }
+        
+        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT, NULL, NULL);
 
-        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT,
-            NULL, NULL);
+        printf("rec VAL: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
         update_pkg_lst(pkg, iph, ct);
         pkg->state = PACK_REC_END;
         return (TRUE);
@@ -118,7 +131,7 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
     {
         create_icmp_packet(buff, opts->packetlen, id, seq);
 
-        if (sendto(sockfd, buff, opts->packetlen - sizeof(c_icmphdr),
+        if (sendto(sockfd, buff, opts->packetlen,
                 0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
         {
             fprintf(stderr, "error: could not send message\n");
@@ -128,7 +141,11 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
     }
     else if (opts->pack_type == PTYPE_UDP)
     {
-        if (sendto(sockfd, buff, opts->packetlen - sizeof(c_icmphdr), 0,
+        // artificially making an icmp header in udp package
+        // because that makes things simpler
+        create_icmp_packet(buff, opts->packetlen, id, seq);
+
+        if (sendto(sockfd, buff, opts->packetlen, 0,
             (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
         {
             fprintf(stderr, "error: could not send message\n");
@@ -218,7 +235,8 @@ int     print_progress(packet_info_t *pkg_lst, options *opts, int c_pkg)
     return c_pkg;
 }
 
-void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts)
+void    ping_loop(struct sockaddr_in *endpoint, options *opts,
+    int rec_sockfd, int send_sockfd)
 {
     u_int8_t    nb_rec_left;
     u_int8_t    nb_sent;
@@ -244,13 +262,13 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts)
                 || (nb_sent % opts->simul_send_nb == 0
                     && difftime_calc(last_pkg, ct) > opts->max_simul_send))))
         {
-            send_packet(pkg_lst, nb_sent, sockfd, endpoint, opts);
+            send_packet(pkg_lst, nb_sent, send_sockfd, endpoint, opts);
             ++nb_sent;
             gettimeofday(&last_pkg, NULL);
         }
         
         // rec packet
-        int ret = rec_packet(sockfd, pkg_lst, opts, ct, endpoint);
+        int ret = rec_packet(rec_sockfd, pkg_lst, opts, ct);
         if (ret == TRUE)
         {
             nb_rec_left--;
@@ -277,5 +295,6 @@ void    ping_loop(struct sockaddr_in *endpoint, int sockfd, options *opts)
     printf("\n");
     // print_lst(pkg_lst, opts);
 
+    printf("START_ID=%d\n", START_ID);
     free_packet_list(pkg_lst, OPTS_NB_PACK);
 }
