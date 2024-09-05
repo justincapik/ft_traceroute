@@ -74,25 +74,12 @@ packet_info_t     *check_packet_to_list(packet_info_t *base, c_icmphdr *recicmp,
 
     id_start = (u_int16_t)START_ID;
 
-    // printf("rec: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
-
-    if (recicmp->id >= id_start && recicmp->id < id_start + opts_nb_pack
-        && recicmp->sequence <= opts_nb_pack + 1)
-    // TODO: condition might be fucky with recicmp->sequence
-    // confirmed the condition is fucky, or at least printfs are
+    if ((recicmp->id >= id_start && recicmp->id < id_start + opts_nb_pack
+        && recicmp->sequence <= opts_nb_pack + 1))
+        // || (recicmp->id == 0 && recicmp->sequence == 0))
     {
         return &(base[recicmp->sequence - 1]);
     }
     else
         return NULL;
-}
-
-u_int16_t       get_server_port(int sockfd, struct sockaddr_in *endpoint,
-    u_int16_t sug_port)
-{
-    (void)sug_port;
-    endpoint->sin_port = htons(33434); 
-    bind(sockfd, (struct sockaddr*)endpoint, sizeof(endpoint));
-
-    return endpoint->sin_port;
 }

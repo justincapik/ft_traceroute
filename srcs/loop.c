@@ -58,31 +58,34 @@ int     rec_packet(int sockfd, packet_info_t *base,
     char databuffer[BUFFER_SIZE];
     ft_bzero(recbuffer, BUFFER_SIZE);
     ft_bzero(databuffer, BUFFER_SIZE);
-    // c_icmphdr *recicmp = (c_icmphdr*)&databuffer[0] + sizeof(struct iphdr);
-    // struct iphdr *iph = (struct iphdr *)&databuffer[0];
 
-    // printf("data=%p, icmp=%p, iph=%p\n", &databuffer[0], recicmp, iph);
-
-    // int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE,
-    //     MSG_DONTWAIT, NULL, NULL);
-
-    int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_PEEK | MSG_DONTWAIT,
+    int rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT,
         NULL, NULL);
     c_icmphdr *recicmp = (c_icmphdr *)(recbuffer + sizeof(struct iphdr));
     struct iphdr *iph = (struct iphdr *)recbuffer;
-    // memmove((void*)recicmp, recbuffer + sizeof(struct iphdr), sizeof(c_icmphdr));
-    // memmove((void*)iph, recbuffer, sizeof(iph));
 
-    if (!(recicmp->id == 0 && recicmp->sequence == 0)) 
-        printf("rec: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
+    // interessant pour les explications
+    // if (rres > 0 && recicmp->type == 11 && recicmp->code == 0)
+    // {
+    //     char *search = (char*)recicmp;
+    //     for(int i = 0; i < 16; ++i)
+    //     {
+    //         printf("%02x",(unsigned char)(*((char*)search
+    //             + sizeof(c_icmphdr) + sizeof(struct iphdr)
+    //             + sizeof(struct udphdr) + i)));
+    //         if (i % 2 == 1)
+    //             printf(" ");
+    //     }
+    //     printf("\n");
+    // }
 
     if (rres > 0 && recicmp->type == 11 && recicmp->code == 0
-        && (pkg = check_packet_to_list(base,
-            (c_icmphdr*)((char*)recicmp + 28), OPTS_NB_PACK)) != NULL)
+        && ((pkg = check_packet_to_list(base,
+            (c_icmphdr*)((char*)recicmp + 28), OPTS_NB_PACK)) != NULL
+        || (pkg = check_packet_to_list(base,
+            (c_icmphdr*)((char*)recicmp + sizeof(c_icmphdr) + sizeof(struct iphdr)
+                + sizeof(struct udphdr) ), OPTS_NB_PACK)) != NULL))
     {
-        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT, NULL, NULL);
-
-        printf("rec VAL: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
         update_pkg_lst(pkg, iph, ct);
         
         return (TRUE);
@@ -96,9 +99,6 @@ int     rec_packet(int sockfd, packet_info_t *base,
             return (FALSE);
         }
         
-        rres = recvfrom(sockfd, recbuffer, BUFFER_SIZE, MSG_DONTWAIT, NULL, NULL);
-
-        printf("rec VAL: id=%d, seq=%d\n", recicmp->id, recicmp->sequence);
         update_pkg_lst(pkg, iph, ct);
         pkg->state = PACK_REC_END;
         return (TRUE);
@@ -145,6 +145,7 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
         // because that makes things simpler
         create_icmp_packet(buff, opts->packetlen, id, seq);
 
+        endpoint->sin_port = htons(opts->port); 
         if (sendto(sockfd, buff, opts->packetlen, 0,
             (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
         {
@@ -294,7 +295,6 @@ void    ping_loop(struct sockaddr_in *endpoint, options *opts,
     }
     printf("\n");
     // print_lst(pkg_lst, opts);
-
-    printf("START_ID=%d\n", START_ID);
+    
     free_packet_list(pkg_lst, OPTS_NB_PACK);
 }

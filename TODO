@@ -11,8 +11,8 @@ options (time limits)
     - -z => send wait, between each paquet
     - XXX -N => throddles number of probes sent at a time
 UDP packet
-    - -I => icmp packet
-    - -U => udp packet
+    - XXX -I => icmp packet
+    - X   -U => udp packet
     - XXX -p port => set port to user
     - -s src_addr => set source address for outgoing packets
 leaks (ideas:)

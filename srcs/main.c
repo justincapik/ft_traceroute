@@ -36,8 +36,6 @@ int main(int argc, char** argv)
     else if (opts.pack_type == PTYPE_UDP)
     {
         send_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        printf("PRE PORT SEARCH\n");
-        opts.port = get_server_port(send_sockfd, endpoint, opts.port);
         printf("ENDPORT = %d\n", opts.port);
     }
     
