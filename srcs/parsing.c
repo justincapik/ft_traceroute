@@ -164,7 +164,7 @@ int     parse_argv(int argc, char **argv, options *opts)
     opts->maxhops = 30;
     opts->pack_type = 0;
     opts->nqueries = 3;
-    opts->maxwait = 200; //TODO: change to float ?
+    opts->maxwait = 100;
     opts->max_send_wait = 100;
     opts->port = 80;
     opts->packetlen = 60;

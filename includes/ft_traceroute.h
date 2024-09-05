@@ -43,8 +43,7 @@
 
 # define OPTS_NB_PACK (opts->nqueries * opts->maxhops - opts->first_ttl)
 
-// # define START_ID 0xffff
-# define START_ID 0x1234
+# define START_ID getpid()
 
 struct udphdr
 {

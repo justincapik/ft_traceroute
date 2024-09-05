@@ -14,10 +14,12 @@ int main(int argc, char** argv)
         return (EXIT_FAILURE);
     }
 
+    // parsing
     options opts;
     if (parse_argv(argc, argv, &opts) == FALSE)
         return (EXIT_FAILURE);
 
+    // lookup
     info = dns_lookup(opts.host, &opts);
     if (info == NULL)
         return (EXIT_FAILURE);
@@ -28,17 +30,14 @@ int main(int argc, char** argv)
     printf("ft_traceroute to %s (%s), %ld hops max, %d byte packets\n",
         opts.host, ip, opts.maxhops, opts.packetlen);
     
+    // open socket in_addr
     rec_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
-    
-    // open sockesin_addrt
     if (opts.pack_type == PTYPE_ICMP)
         send_sockfd = socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
     else if (opts.pack_type == PTYPE_UDP)
-    {
         send_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        printf("ENDPORT = %d\n", opts.port);
-    }
     
+    // send end recieve loop
     ping_loop(endpoint, &opts, rec_sockfd, send_sockfd);
 
     close(send_sockfd);

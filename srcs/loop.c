@@ -135,7 +135,6 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
                 0, (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
         {
             fprintf(stderr, "error: could not send message\n");
-            // ¯\_(ツ)_/¯ oh well ? probably TODO:
             return ;
         }
     }
@@ -150,7 +149,6 @@ void    send_packet(packet_info_t *pkg_lst, int nb_sent,
             (struct sockaddr*)endpoint, sizeof(*endpoint)) < 0)
         {
             fprintf(stderr, "error: could not send message\n");
-            // ¯\_(ツ)_/¯ oh well ? probably TODO:
             return ;
         }
 

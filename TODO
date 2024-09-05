@@ -19,6 +19,3 @@ leaks (ideas:)
     - XXX ai_canonname
     - XXX strdup(ip) and strdup(hostname)
     - XXX packets
-
-small bugs:
-    - seq and id numbers not lining up
